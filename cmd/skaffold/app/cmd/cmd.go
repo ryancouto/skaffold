@@ -210,8 +210,9 @@ func NewSkaffoldCommand(out, errOut io.Writer) *cobra.Command {
 	rootCmd.PersistentFlags().BoolVar(&update.EnableCheck, "update-check", true, "Check for a more recent version of Skaffold")
 	rootCmd.PersistentFlags().BoolVar(&timestamps, "timestamps", false, "Print timestamps in logs")
 	rootCmd.PersistentFlags().MarkHidden("force-colors")
+	rootCmd.PersistentFlags().StringVarP(&envFile, "env-file", "e", constants.SkaffoldEnvFile, "Specify an alternative env file")
 
-	setEnvVariablesFromFile()
+	setEnvVariablesFromFile(envFile)
 	setFlagsFromEnvVariables(rootCmd)
 
 	return rootCmd
@@ -230,12 +231,16 @@ func NewCmdOptions() *cobra.Command {
 }
 
 // setEnvVariablesFromFile will read the `skaffold.env` file and load them into ENV for this process.
-func setEnvVariablesFromFile() {
+func setEnvVariablesFromFile(envFile string) {
 	if _, err := os.Stat(constants.SkaffoldEnvFile); os.IsNotExist(err) {
-		log.Entry(context.TODO()).Debugf("Skipped loading environment variables from file %q: %s", constants.SkaffoldEnvFile, err)
+		if envFile != constants.SkaffoldEnvFile {
+			log.Entry(context.TODO()).Warnf("Skipped loading environment variables from file %q: %s", envFile, err)
+		} else {
+			log.Entry(context.TODO()).Debugf("Skipped loading environment variables from file %q: %s", constants.SkaffoldEnvFile, err)
+		}
 		return
 	}
-	err := godotenv.Load(constants.SkaffoldEnvFile)
+	err := godotenv.Load(envFile)
 	if err != nil {
 		log.Entry(context.TODO()).Warnf("Failed to load environment variables from file %q: %s", constants.SkaffoldEnvFile, err)
 	}
